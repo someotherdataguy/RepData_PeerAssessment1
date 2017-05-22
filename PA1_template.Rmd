@@ -12,7 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r }
 library(chron)
 library(ggplot2)
-library(lattice)
 library(dplyr)
 library(lubridate)
 ```
@@ -58,7 +57,8 @@ Total number of missing values
 sum(is.na(data$steps))
 ```
 
-Impute some missing values
+Impute some missing values. We replace the missing values with teh mean for that strategy, averaged over all days.
+
 ```{r }
 inputed<-inner_join(x=data, y=byInterval, by=c("interval","interval"))
 #we can use the mean for that interval if the value is missing
