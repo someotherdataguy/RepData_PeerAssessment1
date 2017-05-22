@@ -1,10 +1,9 @@
 # Reproducible Research: Peer Assessment 1
 
 
-## Loading and preprocessing the data
+## Load packages
 
 ```r
-data<-read.csv("activity.csv", stringsAsFactors=FALSE)
 library(ggplot2)
 library(dplyr)
 ```
@@ -41,7 +40,10 @@ library(lubridate)
 ##     date
 ```
 
+## Loading and preprocessing the data
+
 ```r
+data<-read.csv("activity.csv", stringsAsFactors=FALSE)
 data<-data %>% mutate(date=ymd(date))
 ```
 
@@ -49,14 +51,12 @@ data<-data %>% mutate(date=ymd(date))
 
 ```r
 byDay<-data %>% group_by(date) %>% summarise(TotalSteps=sum(steps, na.rm = TRUE))
-ggplot(data = byDay, aes(TotalSteps)) + geom_histogram()
+ggplot(data = byDay, aes(TotalSteps)) + geom_histogram(bins = 20)+ggtitle("Total steps per day frequency counts")
 ```
 
-```
-## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-```
+![](PA1_template_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
-![](PA1_template_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+Mean of total steps by day
 
 ```r
 mean(byDay$TotalSteps)
@@ -65,6 +65,8 @@ mean(byDay$TotalSteps)
 ```
 ## [1] 9354.23
 ```
+Median of total steps by day
+
 
 ```r
 median(byDay$TotalSteps)
@@ -77,25 +79,29 @@ median(byDay$TotalSteps)
 ## What is the average daily activity pattern?
 
 ```r
-byInterval<-data %>% group_by(interval) %>% summarise(AverageSteps=median(steps, na.rm=TRUE), meanSteps=mean(steps, na.rm=TRUE))
-ggplot(data = byInterval, aes(x=interval, y=AverageSteps)) + geom_line()
+byInterval<-data %>% group_by(interval) %>% summarise(MedianSteps=median(steps, na.rm=TRUE), MeanSteps=mean(steps, na.rm=TRUE))
+ggplot(data = byInterval, aes(x=interval, y=MeanSteps)) + geom_line()
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+
+Interval with the maximum mean total steps
 
 ```r
-byInterval[which.max(byInterval$AverageSteps),1]
+byInterval[which.max(byInterval$MeanSteps),1]
 ```
 
 ```
 ## # A tibble: 1 × 1
 ##   interval
 ##      <int>
-## 1      845
+## 1      835
 ```
 
 
 ## Imputing missing values
+
+Total number of missing values
 
 ```r
 sum(is.na(data$steps))
@@ -105,25 +111,40 @@ sum(is.na(data$steps))
 ## [1] 2304
 ```
 
+Impute some missing values
+
 ```r
 inputed<-inner_join(x=data, y=byInterval, by=c("interval","interval"))
-inputed$extra <- ifelse(!is.na(inputed$steps), inputed$steps, inputed$AverageSteps)
+#we can use the mean for that interval if the value is missing
+inputed$extra <- ifelse(!is.na(inputed$steps), inputed$steps, inputed$MeanSteps)
 ibyDay<-inputed %>% group_by(date) %>% summarise(TotalSteps=sum(extra, na.rm = TRUE))
-ggplot(data = ibyDay, aes(TotalSteps)) + geom_histogram()
+```
+
+Total number of steps per day 
+
+
+```r
+ggplot(data = ibyDay, aes(TotalSteps)) + geom_histogram(bin=20)+ggtitle("Total steps per day frequency counts")
+```
+
+```
+## Warning: Ignoring unknown parameters: bin
 ```
 
 ```
 ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+
+Mean and median of total steps by day
 
 ```r
 mean(ibyDay$TotalSteps)
 ```
 
 ```
-## [1] 9503.869
+## [1] 10766.19
 ```
 
 ```r
@@ -131,8 +152,10 @@ median(ibyDay$TotalSteps)
 ```
 
 ```
-## [1] 10395
+## [1] 10766.19
 ```
+
+
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
@@ -160,4 +183,4 @@ library(lattice)
 xyplot(data = byIntervalw, meanSteps ~ interval | isweekend, type="l")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-12-1.png)<!-- -->

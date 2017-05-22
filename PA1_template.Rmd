@@ -8,49 +8,91 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Load packages
+```{r }
+library(chron)
+library(ggplot2)
+library(lattice)
+library(dplyr)
+library(lubridate)
+```
+
 ## Loading and preprocessing the data
 ```{r }
 data<-read.csv("activity.csv", stringsAsFactors=FALSE)
-library(ggplot2)
-library(dplyr)
-library(lubridate)
 data<-data %>% mutate(date=ymd(date))
 ```
 
 ## What is mean total number of steps taken per day?
 ```{r }
 byDay<-data %>% group_by(date) %>% summarise(TotalSteps=sum(steps, na.rm = TRUE))
-ggplot(data = byDay, aes(TotalSteps)) + geom_histogram()
+ggplot(data = byDay, aes(TotalSteps)) + geom_histogram(bins = 20)+ggtitle("Total steps per day frequency counts")
+```
+
+Mean of total steps by day
+```{r }
 mean(byDay$TotalSteps)
+```
+Median of total steps by day
+
+```{r }
 median(byDay$TotalSteps)
 ```
 
 ## What is the average daily activity pattern?
 ```{r }
-byInterval<-data %>% group_by(interval) %>% summarise(AverageSteps=median(steps, na.rm=TRUE), meanSteps=mean(steps, na.rm=TRUE))
-ggplot(data = byInterval, aes(x=interval, y=AverageSteps)) + geom_line()
-byInterval[which.max(byInterval$AverageSteps),1]
+byInterval<-data %>% group_by(interval) %>% summarise(MedianSteps=median(steps, na.rm=TRUE), MeanSteps=mean(steps, na.rm=TRUE))
+ggplot(data = byInterval, aes(x=interval, y=MeanSteps)) + geom_line()
+```
+
+Interval with the maximum mean total steps
+```{r }
+byInterval[which.max(byInterval$MeanSteps),1]
 ```
 
 
 ## Imputing missing values
+
+Total number of missing values
 ```{r }
 sum(is.na(data$steps))
+```
+
+Impute some missing values
+```{r }
 inputed<-inner_join(x=data, y=byInterval, by=c("interval","interval"))
-inputed$extra <- ifelse(!is.na(inputed$steps), inputed$steps, inputed$AverageSteps)
+#we can use the mean for that interval if the value is missing
+inputed$extra <- ifelse(!is.na(inputed$steps), inputed$steps, inputed$MeanSteps)
 ibyDay<-inputed %>% group_by(date) %>% summarise(TotalSteps=sum(extra, na.rm = TRUE))
-ggplot(data = ibyDay, aes(TotalSteps)) + geom_histogram()
+```
+
+Total number of steps per day 
+
+```{r }
+ggplot(data = ibyDay, aes(TotalSteps)) + geom_histogram(bin=20)+ggtitle("Total steps per day frequency counts")
+```
+
+Mean and median of total steps by day
+```{r }
 mean(ibyDay$TotalSteps)
 median(ibyDay$TotalSteps)
 ```
 
+The total number of steps has gone up, as the missing values were previously implicitly counted as zero. Also, the median is now equal to the mean, as we have used the mean to fill the missing values. This will skew the centre of the distribution to the mean.
+
 
 ## Are there differences in activity patterns between weekdays and weekends?
 ```{r }
-library(chron)
-inputed$isweekend<-is.weekend(inputed$date)
+inputed$isweekend<-as.factor(ifelse(is.weekend(inputed$date), "WeekEnd", "WeekDay"))
 
-byIntervalw<-inputed %>% group_by(interval, isweekend) %>% summarise(AverageSteps=median(steps, na.rm=TRUE), meanSteps=mean(steps, na.rm=TRUE))
-library(lattice)
-xyplot(data = byIntervalw, meanSteps ~ interval | isweekend, type="l")
+byIntervalw<-inputed %>% group_by(interval, isweekend) %>% summarise(MedianSteps=median(steps, na.rm=TRUE), MeanSteps=mean(steps, na.rm=TRUE))
+qplot(interval, 
+      MeanSteps, 
+      data = byIntervalw, 
+      type = 'l', 
+      geom=c("line"),
+      xlab = "Interval", 
+      ylab = "Number of steps", 
+      main = "") +
+  facet_wrap(~ isweekend, ncol = 1)
 ```
